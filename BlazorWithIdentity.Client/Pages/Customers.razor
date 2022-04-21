@@ -2,10 +2,20 @@
 @attribute [Authorize]
 @inject IAuthorizeApi _authorizeAPI
 
+
+<Heading Size="HeadingSize.Is3">Customers </Heading>
 @if (customers != null)
 {
     <div class="row">
         <div class="col-sm-12">
+             <Addons>
+                    <Addon AddonType="AddonType.Start">
+                        <AddonLabel><Icon Name="IconName.Search" /></AddonLabel>
+                    </Addon>
+                    <Addon AddonType="AddonType.Body">
+                        <TextEdit Placeholder="Search By Customer ID, Business Name, Address" @bind-Text="@customFilterValue" />
+                    </Addon>
+                </Addons>
             <DataGrid TItem="Customer_Profile"
                   Data="@customers"
                   
@@ -18,7 +28,8 @@
                   UseValidation 
                   RowInserted="OnRowInserted"
                   RowUpdated="OnRowUpdated"
-                  RowRemoved="RowRemoved">
+                  RowRemoved="RowRemoved"
+                  CustomFilter="OnCustomFilter">
                 <DataGridColumns>
   
                      <DataGridCommandColumn TItem="Customer_Profile">
@@ -27,7 +38,7 @@
                     <DataGridColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.CustomerID)" Caption="Customer ID" Sortable="false" />
                     <DataGridColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.BusinessName)" Caption="Business Name" Editable="true" />
                     <DataGridColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.Address)" Caption="Address" Editable="true" />
-                    <DataGridDateColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.StartDate)" Caption="Start Date" Sortable="true" Editable="true" Width="120px">
+                    <DataGridDateColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.StartDate)" Caption="Start Date" Sortable="true" Editable="true" Width="140px">
                 <DisplayTemplate>
 
                     @($"{(context as Customer_Profile).StartDate.ToShortDateString()}")
@@ -53,7 +64,7 @@
                 </EditTemplate>
 
             </DataGridDateColumn>
-             <DataGridDateColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.EndDate)" Caption="Start EndDate" Sortable="true" Editable="true" Width="120px">
+             <DataGridDateColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.EndDate)" Caption="End Date" Sortable="true" Editable="true" Width="140px">
                 <DisplayTemplate>
 
                     @($"{(context as Customer_Profile).EndDate.ToShortDateString()}")
@@ -201,5 +212,14 @@ else
         //reset selected customer
         selectedCustomer = null;
     }
+     private string customFilterValue;
+    private bool OnCustomFilter( Customer_Profile customer_ )
+    {
+        // We want to accept empty value as valid or otherwise
+        // datagrid will not show anything.
+        if ( string.IsNullOrEmpty( customFilterValue ) )
+            return true;
 
+        return customer_.BusinessName?.Contains( customFilterValue, StringComparison.OrdinalIgnoreCase ) == true || customer_.Address?.Contains( customFilterValue, StringComparison.OrdinalIgnoreCase ) == true || customer_.CustomerID.ToString().Equals( customFilterValue, StringComparison.OrdinalIgnoreCase ) == true ;
+    }
 }

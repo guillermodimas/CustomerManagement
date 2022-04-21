@@ -11,6 +11,17 @@
      <CardBody>
         <CardTitle Size="5">Customer Representatives</CardTitle>
         <CardText>
+                   <Addons>
+                    <Addon AddonType="AddonType.Start">
+                        <AddonLabel><Icon Name="IconName.Search" /></AddonLabel>
+                    </Addon>
+                    <Addon AddonType="AddonType.Body">
+                        <TextEdit Placeholder="Search By Rep ID, Name, Email" @bind-Text="@customFilterValue" />
+                    </Addon>
+                </Addons>
+
+    
+
                <DataGrid TItem="Customer_Representatives"
                
                   Data="@allReps"
@@ -24,6 +35,8 @@
                   RowRemoved="RowRemoved"
                   UseValidation
                   NewItemDefaultSetter="OnNewItemDefaultSetter"
+                  CustomFilter="OnCustomFilter"
+                  
                     >
                     <PopupTitleTemplate >
                        <Div>Edit Customer Representative</Div>
@@ -40,7 +53,7 @@
                     <DataGridColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.Address)" Caption="Address" Editable="true" />
                     <DataGridColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.Email)" Caption="Email" Editable="true" />
                     <DataGridColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.ActiveInd)" Caption="ActiveInd" Editable="true" />
-                    <DataGridSelectColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.CustomerID)" Caption="Customer Assigned" Editable="true" CellsEditableOnNewCommand="true" Width="220px">
+                    <DataGridSelectColumn TItem="Customer_Representatives" CustomFilter="OnCustomerCustomFilter" Field="@nameof(Customer_Representatives.CustomerID)" Caption="Customer Assigned" Editable="true" CellsEditableOnNewCommand="true" Width="220px">
                 <EditTemplate>
                     <Validation Validator="CheckSelection">
                             <Select TValue="int?" SelectedValue="@((int)(((CellEditContext)context ).CellValue))" SelectedValueChanged="@((v) => ((CellEditContext)context).CellValue = v)">
@@ -81,6 +94,19 @@
 
                     }
                 </DisplayTemplate>
+           @*      <FilterTemplate>
+                    <Select TValue="string" SelectedValue="@selectedCustomerFilter" SelectedValueChanged="@(value => { selectedCustomerFilter = value; context.TriggerFilterChange( selectedCustomerFilter ); })">
+                          <ChildContent>  
+                        if(customers != null)
+                                {  <SelectItem Value="@("*")">All</SelectItem>
+                                    @foreach (var cust in customers)
+                                    {
+                                        <SelectItem Value="cust.CustomerID">@cust.BusinessName</SelectItem>
+                                    }
+                                }
+                                </ChildContent>
+                    </Select>
+        </FilterTemplate>*@
             </DataGridSelectColumn>
                     <DataGridDateColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.StartDate)" Caption="Start Date" Sortable="true" Editable="true" Width="120px">
                 <DisplayTemplate>
@@ -187,7 +213,7 @@ else
     }
     protected override async Task OnParametersSetAsync()
     {
-        var test = selectedCustomer;
+
         await RefreshProjects();
     }
 
@@ -201,7 +227,10 @@ else
         allReps = await _authorizeAPI.GetAllCustomerReps();
 
 
-
+        if (selectedCustomer != null)
+        {
+            allReps = allReps.Where(x => x.CustomerID == selectedCustomer.CustomerID).ToList();
+        }
 
 
     }
@@ -275,8 +304,8 @@ else
     void CheckSelection( ValidatorEventArgs e )
     {
         var value = Convert.ToString(e.Value);
-       
-        
+
+
 
         e.Status = value == "0"
             ? ValidationStatus.Error
@@ -289,8 +318,37 @@ else
 
     void OnNewItemDefaultSetter(Customer_Representatives defaultRecord)
     {
-        defaultRecord.CustomerID = 0; //Organizations.First().OrganizationID;
+        if(selectedCustomer != null)
+        {
+            defaultRecord.CustomerID = selectedCustomer.CustomerID; 
+        }
+        else
+        {
+            defaultRecord.CustomerID = 0;
+        }
+
        
     }
 
+    private string customFilterValue;
+
+    private bool OnCustomFilter( Customer_Representatives custRep )
+    {
+        // We want to accept empty value as valid or otherwise
+        // datagrid will not show anything.
+        if ( string.IsNullOrEmpty( customFilterValue ) )
+            return true;
+
+        return custRep.First_Name?.Contains( customFilterValue, StringComparison.OrdinalIgnoreCase ) == true || custRep.Last_Name?.Contains( customFilterValue, StringComparison.OrdinalIgnoreCase ) == true || custRep.CustomerRepID.ToString().Contains( customFilterValue, StringComparison.OrdinalIgnoreCase ) == true || custRep.Email?.Contains( customFilterValue, StringComparison.OrdinalIgnoreCase ) == true ;
+    }
+     private bool OnCustomerCustomFilter( object itemValue, object searchValue )
+    {
+        if ( searchValue is string genderFilter )
+        {
+            return genderFilter == "*" || genderFilter == itemValue?.ToString();
+        }
+
+        return true;
+    }
+    string selectedCustomerFilter;
 }
