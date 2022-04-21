@@ -1,0 +1,205 @@
+﻿@page "/customers"
+@attribute [Authorize]
+@inject IAuthorizeApi _authorizeAPI
+
+@if (customers != null)
+{
+    <div class="row">
+        <div class="col-sm-12">
+            <DataGrid TItem="Customer_Profile"
+                  Data="@customers"
+                  
+                  Editable
+                  Responsive
+                  ShowPager
+                  PageSize="10"
+                  
+                  SelectedRowChanged="SelectedRowChanged"
+                  UseValidation 
+                  RowInserted="OnRowInserted"
+                  RowUpdated="OnRowUpdated"
+                  RowRemoved="RowRemoved">
+                <DataGridColumns>
+  
+                     <DataGridCommandColumn TItem="Customer_Profile">
+
+                    </DataGridCommandColumn>
+                    <DataGridColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.CustomerID)" Caption="Customer ID" Sortable="false" />
+                    <DataGridColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.BusinessName)" Caption="Business Name" Editable="true" />
+                    <DataGridColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.Address)" Caption="Address" Editable="true" />
+                    <DataGridDateColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.StartDate)" Caption="Start Date" Sortable="true" Editable="true" Width="120px">
+                <DisplayTemplate>
+
+                    @($"{(context as Customer_Profile).StartDate.ToShortDateString()}")
+
+                </DisplayTemplate>
+                <EditTemplate>
+
+                    @if ((DateTime)(((CellEditContext)context).CellValue) == DateTime.MinValue)
+                    {
+
+                     
+                            <DateEdit TValue="DateTime" Date="DateTime.Now" Min="DateTime.Now" DateChanged="@(v => ((CellEditContext)context).CellValue = v)"></DateEdit>
+                           
+                    }
+                    else
+                    {
+                       
+                        <DateEdit TValue="DateTime" Min="DateTime.Now" Date="@((DateTime)(((CellEditContext)context).CellValue))" DateChanged="@(v => ((CellEditContext)context).CellValue = v)" />
+                           
+                    }
+
+
+                </EditTemplate>
+
+            </DataGridDateColumn>
+             <DataGridDateColumn TItem="Customer_Profile" Field="@nameof(Customer_Profile.EndDate)" Caption="Start EndDate" Sortable="true" Editable="true" Width="120px">
+                <DisplayTemplate>
+
+                    @($"{(context as Customer_Profile).EndDate.ToShortDateString()}")
+
+                </DisplayTemplate>
+                <EditTemplate>
+
+                    @if ((DateTime)(((CellEditContext)context).CellValue) == DateTime.MinValue)
+                    {
+
+                     
+                            <DateEdit TValue="DateTime" Date="DateTime.Now" Min="DateTime.Now" DateChanged="@(v => ((CellEditContext)context).CellValue = v)"></DateEdit>
+                           
+                    }
+                    else
+                    {
+                       
+                        <DateEdit TValue="DateTime" Min="DateTime.Now" Date="@((DateTime)(((CellEditContext)context).CellValue))" DateChanged="@(v => ((CellEditContext)context).CellValue = v)" />
+                           
+                    }
+
+
+                </EditTemplate>
+
+            </DataGridDateColumn>
+                </DataGridColumns>
+         
+                <EmptyTemplate>
+                    <div class="box">
+                        No customers found.
+                    </div>
+                </EmptyTemplate>
+            </DataGrid>     
+        </div>
+      
+
+    </div>
+    <Divider />
+   
+      @if (selectedCustomer != null)
+        {
+             <div class="row">
+                <div class="col-sm-12">
+                <Card>
+
+                    <CardBody>
+                        <CardTitle Size="5">@selectedCustomer.BusinessName</CardTitle>
+                        <CardText>
+                            <div class="row">
+                                <div class="col-sm-12">
+                                     @selectedCustomer.CustomerID - @selectedCustomer.BusinessName
+                                </div>
+                            </div>
+                              <Divider />
+                             <div class="row">
+                               <div class="col-sm-12">
+                                   <Field>
+                                        @*<Projects selectedCustomer="selectedCustomer"></Projects>*@
+                                        <CustomerRepresentatives selectedCustomer="selectedCustomer"></CustomerRepresentatives>
+                                    </Field>
+                               </div>
+                           </div>
+                        </CardText>
+                       
+                    </CardBody>
+                </Card>
+            </div>
+            </div>
+           
+        }
+
+}
+else
+{
+    <p>Loading customers...</p>
+}
+
+@code
+{
+    private List<Customer_Profile> customers { get; set; }
+    private Customer_Profile selectedCustomer;
+
+
+    
+    protected override async Task OnInitializedAsync()
+    {
+        customers = await _authorizeAPI.GetAllCustomers();
+    }
+
+
+
+  
+
+    private async Task SelectedRowChanged(Customer_Profile args)
+    {
+        selectedCustomer = args;
+
+
+    }
+
+    private async Task OnRowInserted(SavedRowItem<Customer_Profile, Dictionary<string, object>> e)
+    {
+
+        var startDate = (DateTime)e.Values["StartDate"];
+        if(startDate == DateTime.MinValue)
+        {
+            startDate = DateTime.Now.Date;
+        }
+        var endDate = (DateTime)e.Values["EndDate"];
+        if(endDate == DateTime.MinValue)
+        {
+            endDate = DateTime.Now.Date;
+        }
+
+        var newCustomer = new Customer_Profile() { BusinessName = (string)e.Values["BusinessName"] , Address = (string)e.Values["Address"], StartDate = startDate, EndDate = endDate };
+
+        //Add Customer To DB
+        await _authorizeAPI.AddCustomer(newCustomer);
+
+
+        customers = await _authorizeAPI.GetAllCustomers();
+
+        selectedCustomer = customers.Where(x => x.BusinessName == newCustomer.BusinessName).First();
+
+    }
+    private async Task OnRowUpdated(SavedRowItem<Customer_Profile, Dictionary<string, object>> e)
+    {
+        var updatedCustomer = new Customer_Profile() { CustomerID = (int)e.Item.CustomerID, BusinessName = (string)e.Values["BusinessName"], Address = (string)e.Values["Address"] ,StartDate = (DateTime)e.Values["StartDate"], EndDate = (DateTime)e.Values["EndDate"]  };
+
+        //Update Customer in DB
+        await _authorizeAPI.EditCustomer(updatedCustomer);
+
+       customers = await _authorizeAPI.GetAllCustomers();
+
+       selectedCustomer = customers.Where(x => x.CustomerID == updatedCustomer.CustomerID).First();
+     
+
+    }
+
+    private async Task RowRemoved(Customer_Profile customer)
+    {
+        //Delete Company from DB
+        await _authorizeAPI.DeleteCustomer(customer);
+
+        //reset selected customer
+        selectedCustomer = null;
+    }
+
+}

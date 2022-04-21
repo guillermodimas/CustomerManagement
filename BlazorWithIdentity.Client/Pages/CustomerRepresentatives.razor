@@ -1,0 +1,296 @@
+﻿@page "/representatives"
+@page "/representatives/{CustomerID:int}"
+
+@attribute [Authorize]
+@inject IAuthorizeApi _authorizeAPI
+@inject NavigationManager navManager
+
+
+@if(allReps != null)
+{
+     <CardBody>
+        <CardTitle Size="5">Customer Representatives</CardTitle>
+        <CardText>
+               <DataGrid TItem="Customer_Representatives"
+               
+                  Data="@allReps"
+                  EditMode="DataGridEditMode.Popup"
+                  Editable
+                  Responsive
+                  ShowPager
+                  PageSize="10"
+                  RowInserted="OnRowInserted"
+                  RowUpdated="OnRowUpdated"
+                  RowRemoved="RowRemoved"
+                  UseValidation
+                  NewItemDefaultSetter="OnNewItemDefaultSetter"
+                    >
+                    <PopupTitleTemplate >
+                       <Div>Edit Customer Representative</Div>
+                        
+                    </PopupTitleTemplate>
+                <DataGridColumns>
+                    <DataGridCommandColumn TItem="Customer_Representatives">
+
+                        
+                    </DataGridCommandColumn>
+                    <DataGridColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.CustomerRepID)" Caption="Rep ID" Sortable="false" Editable="false" />
+                    <DataGridColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.First_Name)" Caption="First Name" Editable="true" />
+                    <DataGridColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.Last_Name)" Caption="Last Name" Editable="true" />
+                    <DataGridColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.Address)" Caption="Address" Editable="true" />
+                    <DataGridColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.Email)" Caption="Email" Editable="true" />
+                    <DataGridColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.ActiveInd)" Caption="ActiveInd" Editable="true" />
+                    <DataGridSelectColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.CustomerID)" Caption="Customer Assigned" Editable="true" CellsEditableOnNewCommand="true" Width="220px">
+                <EditTemplate>
+                    <Validation Validator="CheckSelection">
+                            <Select TValue="int?" SelectedValue="@((int)(((CellEditContext)context ).CellValue))" SelectedValueChanged="@((v) => ((CellEditContext)context).CellValue = v)">
+                            <ChildContent>
+                               <SelectItem Value="0">Make Selection</SelectItem>
+                                if(customers != null)
+                                {  
+                                    @foreach (var cust in customers)
+                                    {
+                                        <SelectItem Value="cust.CustomerID">@cust.BusinessName</SelectItem>
+                                    }
+                                }
+
+                            </ChildContent>
+                            <Feedback>
+                                <ValidationError>Customer selection required.</ValidationError>
+                            </Feedback>
+                        </Select>
+                    </Validation>
+                    
+                </EditTemplate>
+                    <DisplayTemplate>
+                    @{
+                        var custID = (context as Customer_Representatives).CustomerID;
+                        if (customers != null)
+                        {
+                            var customerRecord = customers.Where(x => x.CustomerID == custID).FirstOrDefault();
+                            if(customerRecord != null )
+                            {
+                                @($"{customerRecord.BusinessName}")
+                            }
+                            else
+                            {
+                                @($"Not Assigned")
+                            }
+                        }
+
+
+                    }
+                </DisplayTemplate>
+            </DataGridSelectColumn>
+                    <DataGridDateColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.StartDate)" Caption="Start Date" Sortable="true" Editable="true" Width="120px">
+                <DisplayTemplate>
+
+                    @($"{(context as Customer_Representatives).StartDate.ToShortDateString()}")
+
+                </DisplayTemplate>
+                <EditTemplate>
+
+                    @if ((DateTime)(((CellEditContext)context).CellValue) == DateTime.MinValue)
+                    {
+
+                     
+                            <DateEdit TValue="DateTime" Date="DateTime.Now" Min="DateTime.Now" DateChanged="@(v => ((CellEditContext)context).CellValue = v)"></DateEdit>
+                           
+                    }
+                    else
+                    {
+                       
+                        <DateEdit TValue="DateTime" Min="DateTime.Now" Date="@((DateTime)(((CellEditContext)context).CellValue))" DateChanged="@(v => ((CellEditContext)context).CellValue = v)" />
+                           
+                    }
+
+
+                </EditTemplate>
+
+            </DataGridDateColumn>
+             <DataGridDateColumn TItem="Customer_Representatives" Field="@nameof(Customer_Representatives.EndDate)" Caption="End Date" Sortable="true" Editable="true" Width="120px">
+                <DisplayTemplate>
+
+                    @($"{(context as Customer_Representatives).EndDate.ToShortDateString()}")
+
+                </DisplayTemplate>
+                <EditTemplate>
+
+                    @if ((DateTime)(((CellEditContext)context).CellValue) == DateTime.MinValue)
+                    {
+
+                     
+                            <DateEdit TValue="DateTime" Date="DateTime.Now" Min="DateTime.Now" DateChanged="@(v => ((CellEditContext)context).CellValue = v)"></DateEdit>
+                           
+                    }
+                    else
+                    {
+                       
+                        <DateEdit TValue="DateTime" Min="DateTime.Now" Date="@((DateTime)(((CellEditContext)context).CellValue))" DateChanged="@(v => ((CellEditContext)context).CellValue = v)" />
+                           
+                    }
+
+
+                </EditTemplate>
+
+            </DataGridDateColumn>
+            
+      
+             
+                </DataGridColumns>
+                <EmptyTemplate>
+                    <div class="box">
+                        No Assigned Customer Representatives.
+                    </div>
+                </EmptyTemplate>
+            </DataGrid>  
+        </CardText>
+    </CardBody>
+}
+else
+{
+    <p>Loading Assigned Projects...</p>
+}
+
+
+
+
+   
+
+
+
+@code
+{
+    [Parameter] 
+    public Customer_Profile selectedCustomer { get; set; }
+
+
+
+    [Parameter]
+    public int CustomerID { get; set; } //optional to use route parameter of customer ID 
+
+
+    private List<Customer_Representatives> allReps { get; set; }
+
+    private Customer_Representatives selectedCustomerRep { get; set; } = new Customer_Representatives();
+
+    private List<Customer_Profile> customers { get; set; }
+
+
+    private bool toogleAddEditUsers { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await RefreshProjects();
+
+    }
+    protected override async Task OnParametersSetAsync()
+    {
+        var test = selectedCustomer;
+        await RefreshProjects();
+    }
+
+    async Task RefreshProjects()
+    {
+        selectedCustomerRep = new Customer_Representatives();
+
+
+        customers = await _authorizeAPI.GetAllCustomers();
+
+        allReps = await _authorizeAPI.GetAllCustomerReps();
+
+
+
+
+
+    }
+
+
+
+    private async Task OnRowInserted(SavedRowItem<Customer_Representatives, Dictionary<string, object>> e)
+    {
+
+        var startDate = (DateTime)e.Values["StartDate"];
+        if(startDate == DateTime.MinValue)
+        {
+            startDate = DateTime.Now.Date;
+        }
+        var endDate = (DateTime)e.Values["EndDate"];
+        if(endDate == DateTime.MinValue)
+        {
+            endDate = DateTime.Now.Date;
+        }
+        var newCustRep = new Customer_Representatives() { First_Name = (string)e.Values["First_Name"], Last_Name = (string)e.Values["Last_Name"], Address = (string)e.Values["Address"], Email = (string)e.Values["Email"], StartDate = startDate, EndDate = endDate, ActiveInd = (bool)e.Values["ActiveInd"], CustomerID = (int?)e.Values["CustomerID"] };
+
+        //Add Project To DB
+        await _authorizeAPI.AddCustomerRep(newCustRep);
+
+
+        await RefreshProjects();
+
+        selectedCustomerRep = allReps.Where(x => x.Email == newCustRep.Email).First();
+
+    }
+
+
+
+
+
+
+
+    private async Task OnRowUpdated(SavedRowItem<Customer_Representatives, Dictionary<string, object>> e)
+    {
+
+        var startDate = (DateTime)e.Values["StartDate"];
+        if(startDate == DateTime.MinValue)
+        {
+            startDate = DateTime.Now.Date;
+        }
+        var endDate = (DateTime)e.Values["EndDate"];
+        if(endDate == DateTime.MinValue)
+        {
+            endDate = DateTime.Now.Date;
+        }
+
+        var updatedCustomerRep = new Customer_Representatives() { CustomerRepID =  e.Item.CustomerRepID, First_Name = (string)e.Values["First_Name"], Last_Name = (string)e.Values["Last_Name"], Address = (string)e.Values["Address"], Email= (string)e.Values["Email"] , StartDate = startDate, EndDate = endDate, ActiveInd = (bool)e.Values["ActiveInd"] ,  CustomerID = (int)e.Values["CustomerID"] };
+        // Update project in DB
+        await _authorizeAPI.EditCustomerRep(updatedCustomerRep);
+
+        await RefreshProjects();
+
+        selectedCustomerRep = allReps.Where(x => x.CustomerRepID == updatedCustomerRep.CustomerRepID).First();
+
+    }
+    private async Task RowRemoved(Customer_Representatives custRep)
+    {
+        //Delete Company from DB
+        await _authorizeAPI.DeleteCustomerRep(custRep);
+
+        await RefreshProjects();
+
+    }
+
+
+    void CheckSelection( ValidatorEventArgs e )
+    {
+        var value = Convert.ToString(e.Value);
+       
+        
+
+        e.Status = value == "0"
+            ? ValidationStatus.Error
+            : ValidationStatus.Success;
+        if ( e.Status == ValidationStatus.Error )
+        {
+            e.ErrorText = "Customer selection required.";
+        }
+    }
+
+    void OnNewItemDefaultSetter(Customer_Representatives defaultRecord)
+    {
+        defaultRecord.CustomerID = 0; //Organizations.First().OrganizationID;
+       
+    }
+
+}

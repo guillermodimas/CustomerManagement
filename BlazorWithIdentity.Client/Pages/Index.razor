@@ -1,0 +1,102 @@
+﻿@page "/"
+@attribute [Authorize]
+@inject IAuthorizeApi _authorizeAPI
+
+
+<PageTitle>Index</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+
+<div class="container">
+          <div class="row">
+                            <div class="col-lg-2"></div>                   
+                            <div class="col-lg-4">
+                                <div class="card text-center mb-3 d-flex align-items-stretch">
+                                    <div class="card-header d-flex flex-column">
+                                        <h5 class="card-title"><strong>Total Customers</strong></h5>
+                                    </div>
+
+                                    <div class="card-body">
+                                        <p class="card-text"><h1>87</h1></p>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="col-lg-4">
+                                <div class="card text-center mb-3 d-flex align-items-stretch">
+                                    <div class="card-header d-flex flex-column">
+                                        <h5 class="card-title"><strong>Total Customer Reps</strong> </h5>
+                                        
+                                    </div>
+                                    <div class="card-body">
+                                   
+                                                 <p class="card-text"><h1>566</h1></p>
+                                    
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-2"></div>
+                          
+                        </div>
+                        <div class="row">
+                             <div class="col-lg-2"></div>
+                              <div class="col-lg-4">
+                                <div class="card text-center mb-3 d-flex align-items-stretch">
+                                    <div class="card-header d-flex flex-column">
+                                        <h5 class="card-title"><strong>Total App Users</strong> </h5>
+                                        
+                                    </div>
+                                    <div class="card-body ">
+                                   
+                                                <p class="card-text"><h1>@(allUsers.Any() ? allUsers.Count() : "0")</h1></p>
+                                    
+                                    </div>
+                                </div>
+                            </div>
+                           
+                              <div class="col-lg-4">
+                                <div class="card text-center mb-3 d-flex align-items-stretch">
+                                    <div class="card-header d-flex flex-column">
+                                        <h5 class="card-title"><strong>Other Metrics</strong> </h5>
+                                        
+                                    </div>
+                                    <div class="card-body ">
+                                   
+                                                <p class="card-text"><h1>443</h1></p>
+                                    
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-2"></div>
+
+                        </div>
+</div>
+
+
+    </Authorized>
+    <Authorizing>
+        <h1>Loading ...</h1>
+    </Authorizing>
+</AuthorizeView>
+
+
+@code
+{
+
+    
+
+    
+    private List<UserInfo> allUsers { get; set; } = new List<UserInfo>();
+    
+
+    
+    protected override async Task OnInitializedAsync()
+    {
+       //Load Relevant Stats Here
+        allUsers = await _authorizeAPI.GetAllUsers();
+  
+    }
+
+        
+}
