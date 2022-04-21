@@ -43,7 +43,7 @@
 
 
 @code{
-    LoginParameters loginParameters { get; set; } = new LoginParameters{ EmailAddress = "test@yahoo.com", Password="123123123"};
+    LoginParameters loginParameters { get; set; } /*= new LoginParameters{ EmailAddress = "test@yahoo.com", Password="123123123"};*/
     string error { get; set; }
 
     async Task OnSubmit()
